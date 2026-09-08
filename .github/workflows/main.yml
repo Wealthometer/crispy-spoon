@@ -1,0 +1,59 @@
+name: Continuous Script Generator
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/1 * * * *'
+
+jobs:
+  generate-script:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate random script
+        run: |
+          TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
+          FILENAME="auto-${TIMESTAMP}.js"
+          
+          CONTENT_TYPE=$((RANDOM % 3))
+          
+          if [ $CONTENT_TYPE -eq 0 ]; then
+            cat <<'SCRIPT_EOF' > "$FILENAME"
+// Random JavaScript code generated at $(date)
+function randomFunction$(date +%s)() {
+    const result = $(($RANDOM % 100));
+    return result * $(($RANDOM % 10));
+}
+console.log(randomFunction$(date +%s)());
+SCRIPT_EOF
+          elif [ $CONTENT_TYPE -eq 1 ]; then
+            cat <<'TEXT_EOF' > "$FILENAME"
+# Random text generated at $(date)
+This is line $RANDOM of the file.
+Another random line with number: $RANDOM.
+TEXT_EOF
+          else
+            cat <<'JSON_EOF' > "$FILENAME"
+{
+    "id": $RANDOM,
+    "timestamp": "$(date -Iseconds)",
+    "data": "Random data $RANDOM",
+    "value": $RANDOM
+}
+JSON_EOF
+          fi
+          
+          echo "Created file: $FILENAME"
+
+      - name: Commit and push
+        run: |
+          git config --global user.name "Your Name"
+          git config --global user.email "your.email@example.com"
+          git add .
+          git diff --staged --quiet || git commit -m "Auto-generated file: $FILENAME"
+          git push
